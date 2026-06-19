@@ -15,6 +15,20 @@
       "when": 1781899465916,
       "tag": "0001_sour_speed",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1781901725516,
+      "tag": "0002_strong_colleen_wing",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1781901734069,
+      "tag": "0003_quiet_dakota_north",
+      "breakpoints": true
     }
   ]
 }

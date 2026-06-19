@@ -45,54 +45,84 @@ export type UserScreenerAccess = typeof userScreenerAccess.$inferSelect;
 
 // ── PE Evaluator ───────────────────────────────────────────
 export const peSecurities = pgTable("pe_securities", {
-  id: varchar("id").primaryKey(),
-  userId: varchar("user_id").notNull(),
-  symbol: varchar("symbol").notNull(),
+  symbol: varchar("symbol", { length: 20 }).primaryKey(),
+  assetType: text("asset_type"), // 'stock' | 'etf' | 'adr' | 'fund' | 'unknown'
+  exchange: text("exchange"),
+  currency: text("currency"),
+  isPeSupported: boolean("is_pe_supported").notNull().default(true),
   createdAt: text("created_at").notNull(),
+  updatedAt: text("updated_at").notNull(),
 });
 
 export const peDailyPrices = pgTable("pe_daily_prices", {
-  id: varchar("id").primaryKey(),
-  securityId: varchar("security_id").notNull(),
-  date: text("date").notNull(),
-  adjClose: real("adj_close").notNull(),
-});
+  symbol: varchar("symbol", { length: 20 }).notNull(),
+  tradeDate: text("trade_date").notNull(),
+  close: real("close").notNull(),
+  adjustedClose: real("adjusted_close"),
+  source: text("source").notNull().default("yahoo"),
+  fetchedAt: text("fetched_at").notNull(),
+}, (table) => [
+  unique().on(table.symbol, table.tradeDate),
+]);
 
 export const peQuarterlyEps = pgTable("pe_quarterly_eps", {
-  id: varchar("id").primaryKey(),
-  securityId: varchar("security_id").notNull(),
-  quarterEnd: text("quarter_end").notNull(),
-  eps: real("eps").notNull(),
-  source: varchar("source").notNull(), // "annual" | "quarterly" | "earnings_history"
-});
+  symbol: varchar("symbol", { length: 20 }).notNull(),
+  fiscalPeriodEnd: text("fiscal_period_end").notNull(),
+  availableDate: text("available_date").notNull(),
+  eps: real("eps"),
+  dilutedEps: real("diluted_eps"),
+  source: text("source").notNull().default("yahoo"),
+  fetchedAt: text("fetched_at").notNull(),
+}, (table) => [
+  unique().on(table.symbol, table.fiscalPeriodEnd),
+]);
 
 export const peDailyMetrics = pgTable("pe_daily_metrics", {
-  id: varchar("id").primaryKey(),
-  securityId: varchar("security_id").notNull(),
-  date: text("date").notNull(),
-  peRatio: real("pe_ratio"),
-});
+  symbol: varchar("symbol", { length: 20 }).notNull(),
+  tradeDate: text("trade_date").notNull(),
+  price: real("price").notNull(),
+  epsTtm: real("eps_ttm"),
+  peDaily: real("pe_daily"),
+  avgPe5y: real("avg_pe_5y"),
+  epsWindowQuarterEnds: text("eps_window_quarter_ends"), // JSON array of 4 quarter-end dates
+  calculationVersion: integer("calculation_version").notNull().default(1),
+  calculatedAt: text("calculated_at").notNull(),
+}, (table) => [
+  unique().on(table.symbol, table.tradeDate),
+]);
 
 export const peDatasetStatus = pgTable("pe_dataset_status", {
-  securityId: varchar("security_id").primaryKey(),
-  lastBackfillAt: text("last_backfill_at"),
+  symbol: varchar("symbol", { length: 20 }).primaryKey(),
+  windowStartDate: text("window_start_date"),
+  windowEndDate: text("window_end_date"),
+  lastPriceDateStored: text("last_price_date_stored"),
+  lastQuarterAvailableDateStored: text("last_quarter_available_date_stored"),
+  lastFullRebuildAt: text("last_full_rebuild_at"),
   lastIncrementalRefreshAt: text("last_incremental_refresh_at"),
-  status: varchar("status").notNull(),
+  calculationVersion: integer("calculation_version").notNull().default(1),
+  dataCompletenessStatus: text("data_completeness_status").notNull().default("partial"),
+  errorMessage: text("error_message"),
 });
 
 export const peHypotheticalOrders = pgTable("pe_hypothetical_orders", {
-  id: varchar("id").primaryKey(),
+  orderId: varchar("order_id").primaryKey(),
   userId: varchar("user_id").notNull(),
-  securityId: varchar("security_id").notNull(),
-  side: varchar("side").notNull(), // "buy" | "sell"
-  date: text("date").notNull(),
-  price: real("price").notNull(),
-  shares: integer("shares").notNull(),
+  symbol: varchar("symbol", { length: 20 }).notNull(),
+  orderType: text("order_type").notNull(), // 'buy' | 'sell'
+  tradeDate: text("trade_date").notNull(),
+  tradePrice: real("trade_price").notNull(),
+  shares: real("shares").notNull(),
+  notional: real("notional").notNull(),
+  createdAt: text("created_at").notNull(),
+  updatedAt: text("updated_at").notNull(),
 });
 
 export type PeSecurity = typeof peSecurities.$inferSelect;
+export type InsertPeSecurity = typeof peSecurities.$inferInsert;
 export type PeDailyPrice = typeof peDailyPrices.$inferSelect;
 export type PeQuarterlyEps = typeof peQuarterlyEps.$inferSelect;
 export type PeDailyMetric = typeof peDailyMetrics.$inferSelect;
 export type PeDatasetStatus = typeof peDatasetStatus.$inferSelect;
+export type InsertPeDatasetStatus = typeof peDatasetStatus.$inferInsert;
 export type PeHypotheticalOrder = typeof peHypotheticalOrders.$inferSelect;
+export type InsertPeHypotheticalOrder = typeof peHypotheticalOrders.$inferInsert;

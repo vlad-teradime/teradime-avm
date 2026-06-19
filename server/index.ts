@@ -6,6 +6,7 @@ import { serveStatic } from "./static";
 import { initDb, closeDb } from "./db";
 import { setupAuth } from "./auth";
 import { registerAdminRoutes } from "./admin";
+import { registerPeEvaluatorRoutes } from "./screeners/pe-evaluator/routes";
 import type { User as AppUser } from "@shared/schema";
 
 declare global {
@@ -50,6 +51,7 @@ app.get("/api/health", (_req, res) => {
     throw new Error("DATABASE_URL is required");
   }
   await initDb(databaseUrl);
+  await registerPeEvaluatorRoutes(app);
 
   if (process.env.NODE_ENV === "production") {
     serveStatic(app);

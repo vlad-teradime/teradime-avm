@@ -49,6 +49,46 @@
   --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
 }
 
+.dark {
+  --background: 222 25% 8%;
+  --foreground: 220 15% 90%;
+  --border: 222 15% 18%;
+  --card: 222 22% 10%;
+  --card-foreground: 220 15% 90%;
+  --card-border: 222 15% 15%;
+  --popover: 222 22% 12%;
+  --popover-foreground: 220 15% 90%;
+  --popover-border: 222 15% 18%;
+  --primary: 213 70% 55%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 222 15% 18%;
+  --secondary-foreground: 220 15% 90%;
+  --muted: 222 15% 20%;
+  --muted-foreground: 220 8% 55%;
+  --accent: 222 12% 18%;
+  --accent-foreground: 220 15% 90%;
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+  --input: 222 15% 28%;
+  --ring: 213 70% 55%;
+  --chart-1: 213 70% 60%;
+  --chart-2: 160 50% 50%;
+  --chart-3: 43 74% 60%;
+  --chart-4: 262 52% 62%;
+  --chart-5: 27 87% 65%;
+
+  --primary-border: hsl(var(--primary));
+  --primary-border: hsl(from hsl(var(--primary)) h s calc(l + 9) / alpha);
+  --secondary-border: hsl(var(--secondary));
+  --secondary-border: hsl(from hsl(var(--secondary)) h s calc(l + 9) / alpha);
+  --muted-border: hsl(var(--muted));
+  --muted-border: hsl(from hsl(var(--muted)) h s calc(l + 9) / alpha);
+  --accent-border: hsl(var(--accent));
+  --accent-border: hsl(from hsl(var(--accent)) h s calc(l + 9) / alpha);
+  --destructive-border: hsl(var(--destructive));
+  --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + 9) / alpha);
+}
+
 @layer base {
   * {
     @apply border-border;
@@ -57,6 +97,19 @@
     @apply font-sans antialiased bg-background text-foreground;
   }
 }
+
+/* Body transparent in dark mode so the fixed animated background shows through */
+.dark body { background-color: transparent !important; }
+
+/* Make page-level surfaces semi-transparent so the background shows through */
+.dark .bg-background { background-color: rgba(7, 14, 26, 0.50) !important; }
+.dark .bg-card       { background-color: rgba(10, 18, 34, 0.62) !important; }
+.dark .bg-popover    { background-color: rgba(8, 16, 30, 0.88) !important; backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
+.dark header.bg-background { background-color: rgba(7, 14, 26, 0.92) !important; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+.dark header.bg-card       { background-color: rgba(10, 18, 34, 0.92) !important; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+
+/* App content wrapper sits above the fixed background */
+.app-content-layer { position: relative; z-index: 2; }
 
 .tabular-nums {
   font-variant-numeric: tabular-nums lining-nums;

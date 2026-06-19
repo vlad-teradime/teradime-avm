@@ -72,6 +72,22 @@ export function setupAuth(app: Express) {
     })(req, res, next);
   });
 
+  app.post("/api/auth/register", async (req, res, next) => {
+    const { username, password, email } = req.body as { username?: string; password?: string; email?: string };
+    if (!username || username.length < 3) return res.status(400).json({ message: "Username must be at least 3 characters" });
+    if (!password || password.length < 6) return res.status(400).json({ message: "Password must be at least 6 characters" });
+
+    const existing = await storage.getUserByUsername(username);
+    if (existing) return res.status(409).json({ message: "Username already exists" });
+
+    const hashed = await hashPassword(password);
+    const user = await storage.createUser({ username, password: hashed, role: "user", email });
+    req.login(user, (loginErr) => {
+      if (loginErr) return next(loginErr);
+      res.status(201).json({ id: user.id, username: user.username, role: user.role });
+    });
+  });
+
   app.post("/api/auth/logout", (req, res, next) => {
     req.logout((err) => {
       if (err) return next(err);

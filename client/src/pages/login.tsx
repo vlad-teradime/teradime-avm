@@ -6,6 +6,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Lock } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { AuthPageLayout } from "@/components/AuthPageLayout";
+import { Link } from "wouter";
 
 export default function LoginPage() {
   const [username, setUsername] = useState("");
@@ -30,7 +31,17 @@ export default function LoginPage() {
   };
 
   return (
-    <AuthPageLayout subtitle="Sign in to your account">
+    <AuthPageLayout
+      subtitle="Sign in to your account"
+      footer={
+        <p className="text-sm" style={{ color: "rgba(90,173,212,0.50)" }}>
+          Don't have an account?{" "}
+          <Link href="/signup" className="hover:underline font-medium" style={{ color: "#5AADD4" }}>
+            Sign up →
+          </Link>
+        </p>
+      }
+    >
       <h2 className="text-center text-base font-semibold mb-6" style={{ color: "rgba(221,234,245,0.85)" }}>
         Sign In
       </h2>
