@@ -1,4 +1,4 @@
-import { pgTable, varchar, text, boolean, real, integer } from "drizzle-orm/pg-core";
+import { pgTable, varchar, text, boolean, real, integer, unique } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 
 // ── Users ──────────────────────────────────────────────────
@@ -37,7 +37,9 @@ export const userScreenerAccess = pgTable("user_screener_access", {
   enabled: boolean("enabled").notNull().default(false),
   restrictedAt: text("restricted_at").notNull(),
   restrictedBy: varchar("restricted_by").notNull(),
-});
+}, (table) => [
+  unique().on(table.userId, table.screenerKey),
+]);
 
 export type UserScreenerAccess = typeof userScreenerAccess.$inferSelect;
 

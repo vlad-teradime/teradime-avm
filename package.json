@@ -9,7 +9,8 @@
     "start": "cross-env NODE_ENV=production node dist/index.cjs",
     "check": "tsc",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate"
+    "db:migrate": "drizzle-kit migrate",
+    "db:seed": "tsx scripts/seed.ts"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.7",
@@ -31,6 +32,7 @@
     "express": "^5.0.1",
     "express-session": "^1.18.1",
     "lucide-react": "^0.453.0",
+    "memorystore": "^1.6.8",
     "nanoid": "^5.0.9",
     "passport": "^0.7.0",
     "passport-local": "^1.0.0",
