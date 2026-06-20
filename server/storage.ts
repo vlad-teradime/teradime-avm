@@ -66,6 +66,16 @@ export const storage = {
     return row;
   },
 
+  async updateUserPassword(id: string, hashedPassword: string): Promise<void> {
+    await getDb().update(users).set({ password: hashedPassword }).where(eq(users.id, id));
+  },
+
+  async deleteUser(id: string): Promise<boolean> {
+    await getDb().delete(userScreenerAccess).where(eq(userScreenerAccess.userId, id));
+    const rows = await getDb().delete(users).where(eq(users.id, id)).returning({ id: users.id });
+    return rows.length > 0;
+  },
+
   async listScreeners(): Promise<Screener[]> {
     return getDb().select().from(screeners);
   },

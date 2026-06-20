@@ -7,6 +7,7 @@ import LoginPage from "@/pages/login";
 import SignupPage from "@/pages/signup";
 import Dashboard from "@/pages/dashboard";
 import PeEvaluatorPage from "@/pages/pe-evaluator";
+import AdminUsersPage from "@/pages/admin-users";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } },
@@ -23,6 +24,14 @@ function PublicOnly({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
   if (isLoading) return null;
   if (user) return <Redirect to="/" />;
+  return <>{children}</>;
+}
+
+function AdminOnly({ children }: { children: React.ReactNode }) {
+  const { user, isLoading } = useAuth();
+  if (isLoading) return null;
+  if (!user) return <Redirect to="/login" />;
+  if (user.role !== "admin") return <Redirect to="/" />;
   return <>{children}</>;
 }
 
@@ -47,6 +56,11 @@ function Root() {
           <Protected>
             <PeEvaluatorPage />
           </Protected>
+        </Route>
+        <Route path="/admin/users">
+          <AdminOnly>
+            <AdminUsersPage />
+          </AdminOnly>
         </Route>
         <Route path="/">
           <Protected>

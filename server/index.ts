@@ -6,6 +6,7 @@ import { serveStatic } from "./static";
 import { initDb, closeDb } from "./db";
 import { setupAuth } from "./auth";
 import { registerAdminRoutes } from "./admin";
+import { storage } from "./storage";
 import { registerPeEvaluatorRoutes } from "./screeners/pe-evaluator/routes";
 import type { User as AppUser } from "@shared/schema";
 
@@ -51,6 +52,7 @@ app.get("/api/health", (_req, res) => {
     throw new Error("DATABASE_URL is required");
   }
   await initDb(databaseUrl);
+  await storage.upsertScreener("pe-evaluator", "PE Evaluator", "5-year historical P/E analysis with hypothetical trade tracking");
   await registerPeEvaluatorRoutes(app);
 
   if (process.env.NODE_ENV === "production") {

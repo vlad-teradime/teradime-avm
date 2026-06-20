@@ -4,11 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle, RefreshCw, RotateCcw, TrendingUp, LogOut, ArrowLeft } from "lucide-react";
-import { Link } from "wouter";
+import { AlertCircle, RefreshCw, RotateCcw, TrendingUp } from "lucide-react";
 import PeChart, { type PeSeriesPoint } from "@/components/pe-chart";
 import PeTradeModal from "@/components/pe-trade-modal";
-import { useAuth } from "@/hooks/useAuth";
+import AppShell from "@/components/AppShell";
 
 const BASE = "/api/screeners/pe-evaluator";
 
@@ -48,7 +47,6 @@ function plClass(n: number | null) {
 
 export default function PeEvaluatorPage() {
   const qc = useQueryClient();
-  const { user, logout } = useAuth();
   const [inputSymbol, setInputSymbol] = useState("");
   const [activeSymbol, setActiveSymbol] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -166,26 +164,7 @@ export default function PeEvaluatorPage() {
   const hasData = seriesData && seriesData.series.length > 0;
 
   return (
-    <div className="min-h-screen bg-background app-content-layer">
-      <header className="border-b bg-card sticky top-0 z-10">
-        <div className="mx-auto max-w-5xl px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link href="/" className="text-muted-foreground hover:text-foreground">
-              <ArrowLeft className="h-5 w-5" />
-            </Link>
-            <img src="/teradime-triangle.png" alt="Teradime" className="h-7 w-7" />
-            <h1 className="text-base font-semibold tracking-tight">PE Evaluator</h1>
-          </div>
-          <div className="flex items-center gap-3 text-sm">
-            <span className="text-muted-foreground">{user?.username}</span>
-            <Button variant="outline" size="sm" onClick={() => logout()}>
-              <LogOut className="mr-2 h-4 w-4" />
-              Log out
-            </Button>
-          </div>
-        </div>
-      </header>
-
+    <AppShell>
       <main className="mx-auto max-w-5xl px-6 py-8 space-y-5">
         <div>
           <h2 className="text-xl font-semibold tracking-tight">PE Evaluator</h2>
@@ -378,6 +357,6 @@ export default function PeEvaluatorPage() {
           onSubmit={handleOrderSubmit}
         />
       </main>
-    </div>
+    </AppShell>
   );
 }
