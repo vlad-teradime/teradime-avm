@@ -1,10 +1,15 @@
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { ComposedChart, Line, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 export interface ShillerPeChartPoint {
   date: string;
   buyHoldValue: number;
   strategy2Value: number;
   strategy3Value: number;
+}
+
+export interface ShillerPeMarkerPoint {
+  date: string;
+  marketValue: number;
 }
 
 function formatCompactCurrency(value: number) {
@@ -34,19 +39,29 @@ export function downsampleForChart(points: ShillerPeChartPoint[]): ShillerPeChar
   return sampled;
 }
 
-export default function ShillerPeStrategyChart({ data }: { data: ShillerPeChartPoint[] }) {
+interface ShillerPeStrategyChartProps {
+  data: ShillerPeChartPoint[];
+  strategy2Buys: ShillerPeMarkerPoint[];
+  strategy3Buys: ShillerPeMarkerPoint[];
+  strategy3Sells: ShillerPeMarkerPoint[];
+}
+
+export default function ShillerPeStrategyChart({ data, strategy2Buys, strategy3Buys, strategy3Sells }: ShillerPeStrategyChartProps) {
   return (
     <ResponsiveContainer width="100%" height={420}>
-      <LineChart data={data} margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
+      <ComposedChart margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
         <CartesianGrid strokeDasharray="3 3" />
-        <XAxis dataKey="date" minTickGap={40} />
+        <XAxis dataKey="date" type="category" allowDuplicatedCategory={false} minTickGap={40} />
         <YAxis tickFormatter={formatCompactCurrency} width={70} />
         <Tooltip formatter={(value: number) => formatCurrency(value)} />
         <Legend />
-        <Line type="monotone" dataKey="buyHoldValue" name="Buy & Hold" stroke="#94a3b8" strokeWidth={1.5} dot={false} />
-        <Line type="monotone" dataKey="strategy2Value" name="Valuation-Filtered DCA" stroke="#3b82f6" strokeWidth={1.5} dot={false} />
-        <Line type="monotone" dataKey="strategy3Value" name="Valuation + Trend Filtered DCA" stroke="#16a34a" strokeWidth={2} dot={false} />
-      </LineChart>
+        <Line data={data} dataKey="buyHoldValue" name="Buy & Hold" stroke="#94a3b8" strokeWidth={1.5} dot={false} />
+        <Line data={data} dataKey="strategy2Value" name="Valuation-Filtered DCA" stroke="#3b82f6" strokeWidth={1.5} dot={false} />
+        <Line data={data} dataKey="strategy3Value" name="Valuation + Trend Filtered DCA" stroke="#16a34a" strokeWidth={2} dot={false} />
+        <Scatter data={strategy2Buys} dataKey="marketValue" name="Strategy 2 Buy" fill="#3b82f6" shape="circle" legendType="circle" />
+        <Scatter data={strategy3Buys} dataKey="marketValue" name="Strategy 3 Buy" fill="#16a34a" shape="triangle" legendType="triangle" />
+        <Scatter data={strategy3Sells} dataKey="marketValue" name="Strategy 3 Sell" fill="#dc2626" shape="diamond" legendType="diamond" />
+      </ComposedChart>
     </ResponsiveContainer>
   );
 }

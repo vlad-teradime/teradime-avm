@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AlertCircle } from "lucide-react";
 import AppShell from "@/components/AppShell";
-import ShillerPeStrategyChart, { downsampleForChart, type ShillerPeChartPoint } from "@/components/shiller-pe-strategy-chart";
+import ShillerPeStrategyChart, { downsampleForChart, type ShillerPeChartPoint, type ShillerPeMarkerPoint } from "@/components/shiller-pe-strategy-chart";
 
 const BASE = "/api/screeners/shiller-pe-strategy";
 
@@ -28,9 +28,45 @@ interface StrategySummary {
 
 interface BacktestPoint {
   date: string;
+  price: number;
   buyHold: { marketValue: number };
-  strategy2: { marketValue: number };
-  strategy3: { marketValue: number };
+  strategy2: { signal: "buy" | "hold"; shares: number; cash: number; marketValue: number };
+  strategy3: { signal: "buy" | "hold"; sellSignal: "buy" | "hold" | "sell"; shares: number; cash: number; marketValue: number };
+}
+
+interface TradeEvent {
+  date: string;
+  type: "buy" | "sell";
+  price: number;
+  shares: number;
+  cash: number;
+  marketValue: number;
+}
+
+function buildStrategy2Events(series: BacktestPoint[]): TradeEvent[] {
+  const events: TradeEvent[] = [];
+  let prevSignal: "buy" | "hold" = "hold";
+  for (const p of series) {
+    if (p.strategy2.signal === "buy" && prevSignal !== "buy") {
+      events.push({ date: p.date, type: "buy", price: p.price, shares: p.strategy2.shares, cash: p.strategy2.cash, marketValue: p.strategy2.marketValue });
+    }
+    prevSignal = p.strategy2.signal;
+  }
+  return events;
+}
+
+function buildStrategy3Events(series: BacktestPoint[]): TradeEvent[] {
+  const events: TradeEvent[] = [];
+  let prevSignal: "buy" | "hold" = "hold";
+  for (const p of series) {
+    if (p.strategy3.sellSignal === "sell") {
+      events.push({ date: p.date, type: "sell", price: p.price, shares: p.strategy3.shares, cash: p.strategy3.cash, marketValue: p.strategy3.marketValue });
+    } else if (p.strategy3.signal === "buy" && prevSignal !== "buy") {
+      events.push({ date: p.date, type: "buy", price: p.price, shares: p.strategy3.shares, cash: p.strategy3.cash, marketValue: p.strategy3.marketValue });
+    }
+    prevSignal = p.strategy3.signal;
+  }
+  return events;
 }
 
 interface BacktestResult {
@@ -135,6 +171,22 @@ export default function ShillerPeStrategyPage() {
     })));
   }, [result]);
 
+  const strategy2Events = useMemo(() => (result ? buildStrategy2Events(result.series) : []), [result]);
+  const strategy3Events = useMemo(() => (result ? buildStrategy3Events(result.series) : []), [result]);
+
+  const strategy2Buys: ShillerPeMarkerPoint[] = useMemo(
+    () => strategy2Events.filter((e) => e.type === "buy").map((e) => ({ date: e.date, marketValue: e.marketValue })),
+    [strategy2Events],
+  );
+  const strategy3Buys: ShillerPeMarkerPoint[] = useMemo(
+    () => strategy3Events.filter((e) => e.type === "buy").map((e) => ({ date: e.date, marketValue: e.marketValue })),
+    [strategy3Events],
+  );
+  const strategy3Sells: ShillerPeMarkerPoint[] = useMemo(
+    () => strategy3Events.filter((e) => e.type === "sell").map((e) => ({ date: e.date, marketValue: e.marketValue })),
+    [strategy3Events],
+  );
+
   return (
     <AppShell>
       <main className="mx-auto max-w-5xl px-6 py-8 space-y-5">
@@ -159,6 +211,7 @@ export default function ShillerPeStrategyPage() {
               <Label>Start date</Label>
               <Input
                 type="date"
+                className="dark:[color-scheme:dark]"
                 value={startDate}
                 min={dataRange?.earliestMonthlyDate ?? undefined}
                 max={dataRange?.latestMonthlyDate ?? undefined}
@@ -169,6 +222,7 @@ export default function ShillerPeStrategyPage() {
               <Label>End date</Label>
               <Input
                 type="date"
+                className="dark:[color-scheme:dark]"
                 value={endDate}
                 min={dataRange?.earliestMonthlyDate ?? undefined}
                 max={dataRange?.latestMonthlyDate ?? undefined}
@@ -184,8 +238,11 @@ export default function ShillerPeStrategyPage() {
               </select>
             </div>
             <div className="space-y-1.5">
-              <Label>Contribution per period ($)</Label>
-              <Input type="number" min="1" value={contributionAmount} onChange={(e) => setContributionAmount(e.target.value)} />
+              <Label>Contribution per period</Label>
+              <div className="relative">
+                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">$</span>
+                <Input type="number" min="1" className="pl-6" value={contributionAmount} onChange={(e) => setContributionAmount(e.target.value)} />
+              </div>
             </div>
           </div>
 
@@ -238,7 +295,12 @@ export default function ShillerPeStrategyPage() {
           <>
             <div className="rounded-lg border border-border p-4">
               <p className="text-sm font-medium mb-3">Portfolio Value Over Time</p>
-              <ShillerPeStrategyChart data={chartData} />
+              <ShillerPeStrategyChart
+                data={chartData}
+                strategy2Buys={strategy2Buys}
+                strategy3Buys={strategy3Buys}
+                strategy3Sells={strategy3Sells}
+              />
             </div>
 
             <div className="rounded-lg border border-border p-4 space-y-3">
@@ -292,9 +354,54 @@ export default function ShillerPeStrategyPage() {
                 transaction costs, taxes, or bid-ask spreads.
               </p>
             </div>
+
+            <div className="grid md:grid-cols-2 gap-4">
+              <TradeLog title="Valuation-Filtered DCA — Buys" events={strategy2Events} />
+              <TradeLog title="Valuation + Trend Filtered DCA — Buys & Sells" events={strategy3Events} />
+            </div>
           </>
         )}
       </main>
     </AppShell>
+  );
+}
+
+function TradeLog({ title, events }: { title: string; events: TradeEvent[] }) {
+  return (
+    <div className="rounded-lg border border-border p-4 space-y-3">
+      <h3 className="text-sm font-semibold">{title}</h3>
+      {events.length === 0 ? (
+        <p className="text-sm text-muted-foreground">No buy or sell transitions in this period.</p>
+      ) : (
+        <div className="overflow-x-auto max-h-80 overflow-y-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-muted-foreground border-b border-border sticky top-0 bg-background">
+                <th className="py-2 pr-4 font-medium">Date</th>
+                <th className="py-2 pr-4 font-medium">Type</th>
+                <th className="py-2 pr-4 font-medium">Price</th>
+                <th className="py-2 pr-4 font-medium">Shares (rolling)</th>
+                <th className="py-2 pr-4 font-medium">Cash (rolling)</th>
+                <th className="py-2 pr-4 font-medium">Market Value (rolling)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {events.map((e, i) => (
+                <tr key={`${e.date}-${i}`} className="border-b border-border/50">
+                  <td className="py-2 pr-4">{e.date}</td>
+                  <td className={`py-2 pr-4 font-medium capitalize ${e.type === "buy" ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                    {e.type}
+                  </td>
+                  <td className="py-2 pr-4">{fmtCurrency(e.price)}</td>
+                  <td className="py-2 pr-4">{e.shares.toFixed(2)}</td>
+                  <td className="py-2 pr-4">{fmtCurrency(e.cash)}</td>
+                  <td className="py-2 pr-4">{fmtCurrency(e.marketValue)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
   );
 }
