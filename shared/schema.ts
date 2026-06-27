@@ -126,3 +126,37 @@ export type PeDatasetStatus = typeof peDatasetStatus.$inferSelect;
 export type InsertPeDatasetStatus = typeof peDatasetStatus.$inferInsert;
 export type PeHypotheticalOrder = typeof peHypotheticalOrders.$inferSelect;
 export type InsertPeHypotheticalOrder = typeof peHypotheticalOrders.$inferInsert;
+
+// ── Shiller PE DCA Strategy Screener ──────────────────────
+// Global market data (Shiller CAPE + S&P 500 history) — not scoped to a user.
+
+export const shillerCapeMonthly = pgTable("shiller_cape_monthly", {
+  periodDate: text("period_date").primaryKey(), // YYYY-MM-01
+  sp500Price: real("sp500_price").notNull(),    // nominal S&P Composite price (Shiller dataset column P)
+  shillerPe: real("shiller_pe").notNull(),       // CAPE / P-E10
+  earningsBase: real("earnings_base").notNull(), // derived: sp500Price / shillerPe
+  source: text("source").notNull().default("shiller_dataset"),
+  fetchedAt: text("fetched_at").notNull(),
+});
+
+export const sp500DailyPrices = pgTable("sp500_daily_prices", {
+  tradeDate: text("trade_date").primaryKey(),
+  close: real("close").notNull(),
+  source: text("source").notNull().default("yfinance"),
+  fetchedAt: text("fetched_at").notNull(),
+});
+
+export const shillerDatasetStatus = pgTable("shiller_dataset_status", {
+  id: varchar("id").primaryKey().default("singleton"),
+  lastShillerMonthStored: text("last_shiller_month_stored"),
+  lastPriceDateStored: text("last_price_date_stored"),
+  lastFullRebuildAt: text("last_full_rebuild_at"),
+  lastIncrementalRefreshAt: text("last_incremental_refresh_at"),
+  dataCompletenessStatus: text("data_completeness_status").notNull().default("partial"),
+  errorMessage: text("error_message"),
+});
+
+export type ShillerCapeMonthly = typeof shillerCapeMonthly.$inferSelect;
+export type Sp500DailyPrice = typeof sp500DailyPrices.$inferSelect;
+export type ShillerDatasetStatus = typeof shillerDatasetStatus.$inferSelect;
+export type InsertShillerDatasetStatus = typeof shillerDatasetStatus.$inferInsert;

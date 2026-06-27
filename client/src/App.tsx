@@ -7,6 +7,7 @@ import LoginPage from "@/pages/login";
 import SignupPage from "@/pages/signup";
 import Dashboard from "@/pages/dashboard";
 import PeEvaluatorPage from "@/pages/pe-evaluator";
+import ShillerPeStrategyPage from "@/pages/shiller-pe-strategy";
 import AdminUsersPage from "@/pages/admin-users";
 
 const queryClient = new QueryClient({
@@ -55,6 +56,11 @@ function Root() {
         <Route path="/pe-evaluator">
           <Protected>
             <PeEvaluatorPage />
+          </Protected>
+        </Route>
+        <Route path="/shiller-pe-strategy">
+          <Protected>
+            <ShillerPeStrategyPage />
           </Protected>
         </Route>
         <Route path="/admin/users">

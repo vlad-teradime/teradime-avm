@@ -1,5 +1,8 @@
 # ── Dependencies ─────────────────────────────────────────
 node_modules/
+__pycache__/
+*.pyc
+*.sqlite
 
 # ── Build output ─────────────────────────────────────────
 dist/

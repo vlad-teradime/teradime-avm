@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { LayoutDashboard, TrendingUp, Users, LogOut } from "lucide-react";
+import { LayoutDashboard, TrendingUp, Users, LogOut, LineChart } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 interface NavItem {
@@ -13,6 +13,7 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/pe-evaluator", label: "PE Evaluator", icon: TrendingUp },
+  { href: "/shiller-pe-strategy", label: "Shiller PE Screener", icon: LineChart },
   { href: "/admin/users", label: "Users", icon: Users, adminOnly: true },
 ];
 

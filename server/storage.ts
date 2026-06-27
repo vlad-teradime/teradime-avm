@@ -11,6 +11,9 @@ import {
   peDailyMetrics,
   peDatasetStatus,
   peHypotheticalOrders,
+  shillerCapeMonthly,
+  sp500DailyPrices,
+  shillerDatasetStatus,
   type User,
   type Screener,
   type UserScreenerAccess,
@@ -21,6 +24,10 @@ import {
   type PeDatasetStatus,
   type InsertPeDatasetStatus,
   type InsertPeHypotheticalOrder,
+  type ShillerCapeMonthly,
+  type Sp500DailyPrice,
+  type ShillerDatasetStatus,
+  type InsertShillerDatasetStatus,
 } from "@shared/schema";
 
 function chunkArray<T>(arr: T[], size: number): T[][] {
@@ -241,5 +248,58 @@ export const storage = {
       .where(and(eq(peHypotheticalOrders.orderId, orderId), eq(peHypotheticalOrders.userId, userId)))
       .returning({ orderId: peHypotheticalOrders.orderId });
     return rows.length > 0;
+  },
+
+  // ── Shiller PE Strategy Screener ──────────────────────────
+
+  async getShillerCapeMonthly(): Promise<ShillerCapeMonthly[]> {
+    return getDb().select().from(shillerCapeMonthly).orderBy(asc(shillerCapeMonthly.periodDate));
+  },
+
+  async upsertShillerCapeMonthly(rows: { periodDate: string; sp500Price: number; shillerPe: number; earningsBase: number; source: string; fetchedAt: string }[]) {
+    if (!rows.length) return;
+    for (const chunk of chunkArray(rows, 500)) {
+      await getDb()
+        .insert(shillerCapeMonthly)
+        .values(chunk)
+        .onConflictDoUpdate({
+          target: shillerCapeMonthly.periodDate,
+          set: {
+            sp500Price: sql`excluded.sp500_price`,
+            shillerPe: sql`excluded.shiller_pe`,
+            earningsBase: sql`excluded.earnings_base`,
+            source: sql`excluded.source`,
+            fetchedAt: sql`excluded.fetched_at`,
+          },
+        });
+    }
+  },
+
+  async getSp500DailyPrices(fromDate?: string): Promise<Sp500DailyPrice[]> {
+    if (fromDate) {
+      return getDb().select().from(sp500DailyPrices).where(gte(sp500DailyPrices.tradeDate, fromDate)).orderBy(asc(sp500DailyPrices.tradeDate));
+    }
+    return getDb().select().from(sp500DailyPrices).orderBy(asc(sp500DailyPrices.tradeDate));
+  },
+
+  async upsertSp500DailyPrices(rows: { tradeDate: string; close: number; source: string; fetchedAt: string }[]) {
+    if (!rows.length) return;
+    for (const chunk of chunkArray(rows, 500)) {
+      await getDb().insert(sp500DailyPrices).values(chunk).onConflictDoNothing();
+    }
+  },
+
+  async getShillerDatasetStatus(): Promise<ShillerDatasetStatus | undefined> {
+    const [row] = await getDb().select().from(shillerDatasetStatus).where(eq(shillerDatasetStatus.id, "singleton"));
+    return row;
+  },
+
+  async upsertShillerDatasetStatus(data: Partial<InsertShillerDatasetStatus>) {
+    const [row] = await getDb()
+      .insert(shillerDatasetStatus)
+      .values({ id: "singleton", dataCompletenessStatus: "partial", ...data })
+      .onConflictDoUpdate({ target: shillerDatasetStatus.id, set: data })
+      .returning();
+    return row;
   },
 };

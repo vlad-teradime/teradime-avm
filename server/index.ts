@@ -8,6 +8,7 @@ import { setupAuth } from "./auth";
 import { registerAdminRoutes } from "./admin";
 import { storage } from "./storage";
 import { registerPeEvaluatorRoutes } from "./screeners/pe-evaluator/routes";
+import { registerShillerPeStrategyRoutes } from "./screeners/shiller-pe-strategy/routes";
 import type { User as AppUser } from "@shared/schema";
 
 declare global {
@@ -54,6 +55,8 @@ app.get("/api/health", (_req, res) => {
   await initDb(databaseUrl);
   await storage.upsertScreener("pe-evaluator", "PE Evaluator", "5-year historical P/E analysis with hypothetical trade tracking");
   await registerPeEvaluatorRoutes(app);
+  await storage.upsertScreener("shiller-pe-strategy", "Shiller PE Strategy Screener", "Backtest DCA strategies against the S&P 500 using Shiller CAPE valuation and price-trend filters");
+  await registerShillerPeStrategyRoutes(app);
 
   if (process.env.NODE_ENV === "production") {
     serveStatic(app);
