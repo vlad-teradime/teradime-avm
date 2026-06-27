@@ -376,13 +376,13 @@ function TradeLog({ title, events }: { title: string; events: TradeEvent[] }) {
         <div className="overflow-x-auto max-h-80 overflow-y-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-muted-foreground border-b border-border sticky top-0 bg-background">
-                <th className="py-2 pr-4 font-medium">Date</th>
-                <th className="py-2 pr-4 font-medium">Type</th>
-                <th className="py-2 pr-4 font-medium">Price</th>
-                <th className="py-2 pr-4 font-medium">Shares (rolling)</th>
-                <th className="py-2 pr-4 font-medium">Cash (rolling)</th>
-                <th className="py-2 pr-4 font-medium">Market Value (rolling)</th>
+              <tr className="text-left text-muted-foreground">
+                <th className="sticky top-0 z-10 bg-background py-2 pr-4 font-medium border-b border-border">Date</th>
+                <th className="sticky top-0 z-10 bg-background py-2 pr-4 font-medium border-b border-border">Type</th>
+                <th className="sticky top-0 z-10 bg-background py-2 pr-4 font-medium border-b border-border">Price</th>
+                <th className="sticky top-0 z-10 bg-background py-2 pr-4 font-medium border-b border-border">Shares (rolling)</th>
+                <th className="sticky top-0 z-10 bg-background py-2 pr-4 font-medium border-b border-border">Cash (rolling)</th>
+                <th className="sticky top-0 z-10 bg-background py-2 pr-4 font-medium border-b border-border">Market Value (rolling)</th>
               </tr>
             </thead>
             <tbody>
