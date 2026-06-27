@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Download, SlidersHorizontal } from "lucide-react";
 
@@ -32,6 +32,23 @@ const GROUP_LABELS: Record<GroupId, string> = {
   strategy3: "Valuation + Trend Filtered DCA",
 };
 const GROUP_ORDER: GroupId[] = ["market", "buyHold", "strategy2", "strategy3"];
+
+// Opaque, theme-fixed palette colors (not the app's semantic /<alpha-value>
+// tokens) so each strategy's columns stay visually identified — with a solid,
+// non-translucent fill — across both sticky header rows and every body row,
+// independent of scroll position or which columns are currently hidden.
+const GROUP_HEADER_BG: Record<GroupId, string> = {
+  market: "bg-slate-200 dark:bg-slate-800",
+  buyHold: "bg-zinc-200 dark:bg-zinc-800",
+  strategy2: "bg-blue-100 dark:bg-blue-950",
+  strategy3: "bg-emerald-100 dark:bg-emerald-950",
+};
+const GROUP_BODY_TINT: Record<GroupId, string> = {
+  market: "",
+  buyHold: "bg-zinc-500/5",
+  strategy2: "bg-blue-500/5",
+  strategy3: "bg-emerald-500/5",
+};
 
 interface ColumnDef {
   id: string;
@@ -127,6 +144,21 @@ function downloadCsv(columns: ColumnDef[], rows: Row[]) {
 export default function BacktestDataTable({ series, contributionAmount }: { series: BacktestSeriesPoint[]; contributionAmount: number }) {
   const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
   const [columnsPanelOpen, setColumnsPanelOpen] = useState(false);
+  const [groupRowHeight, setGroupRowHeight] = useState(36);
+  const groupRowRef = useRef<HTMLTableRowElement>(null);
+
+  // Measure the actual rendered height of the group-header row rather than
+  // assuming a fixed value, so the column-header row's sticky offset never
+  // drifts out of sync with it (a mismatch there is what let body rows show
+  // through behind the headers on scroll).
+  useLayoutEffect(() => {
+    if (!groupRowRef.current) return;
+    const update = () => setGroupRowHeight(groupRowRef.current?.getBoundingClientRect().height ?? 36);
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(groupRowRef.current);
+    return () => observer.disconnect();
+  }, []);
 
   const rows = useMemo(() => buildRows(series, contributionAmount), [series, contributionAmount]);
   const visibleColumns = useMemo(() => COLUMNS.filter((c) => !hiddenIds.has(c.id)), [hiddenIds]);
@@ -191,46 +223,53 @@ export default function BacktestDataTable({ series, contributionAmount }: { seri
       <div className="overflow-auto max-h-[32rem] border border-border/50 rounded-md">
         <table className="w-full text-sm border-collapse">
           <thead>
-            <tr>
-              {visibleGroups.map((g) => (
+            <tr ref={groupRowRef}>
+              {visibleGroups.map((g, gi) => (
                 <th
                   key={g.id}
                   colSpan={g.count}
-                  className="sticky top-0 z-20 h-9 bg-muted text-center text-xs font-semibold border-b border-border whitespace-nowrap px-2"
+                  className={`sticky top-0 z-20 h-9 ${GROUP_HEADER_BG[g.id]} text-center text-xs font-semibold border-b border-border whitespace-nowrap px-2 ${gi > 0 ? "border-l-2 border-l-border" : ""}`}
                 >
                   {GROUP_LABELS[g.id]}
                 </th>
               ))}
             </tr>
             <tr>
-              {visibleColumns.map((c) => (
-                <th
-                  key={c.id}
-                  className={`sticky top-9 z-10 h-9 bg-background text-muted-foreground font-medium border-b border-border whitespace-nowrap px-2 ${c.align === "left" ? "text-left" : "text-right"}`}
-                >
-                  {c.label}
-                </th>
-              ))}
+              {visibleColumns.map((c, i) => {
+                const isGroupStart = i === 0 || visibleColumns[i - 1].group !== c.group;
+                return (
+                  <th
+                    key={c.id}
+                    style={{ top: groupRowHeight }}
+                    className={`sticky z-10 h-9 ${GROUP_HEADER_BG[c.group]} text-muted-foreground font-medium border-b border-border whitespace-nowrap px-2 ${c.align === "left" ? "text-left" : "text-right"} ${isGroupStart ? "border-l-2 border-l-border" : ""}`}
+                  >
+                    {c.label}
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody>
             {rows.map((r, i) => (
               <tr key={`${r.date}-${i}`} className="border-b border-border/30 odd:bg-muted/20">
-                {visibleColumns.map((c) => (
-                  <td
-                    key={c.id}
-                    className={`px-2 py-1.5 whitespace-nowrap ${c.align === "left" ? "text-left" : "text-right"}`}
-                  >
-                    {(c.id === "s2Signal" && r.strategy2.signal === "buy") ||
-                    (c.id === "s3Signal" && r.strategy3.signal === "buy") ? (
-                      <span className="text-green-600 dark:text-green-400 font-medium">{c.display(r)}</span>
-                    ) : c.id === "s3SellSignal" && r.strategy3.sellSignal === "sell" ? (
-                      <span className="text-red-600 dark:text-red-400 font-medium">{c.display(r)}</span>
-                    ) : (
-                      c.display(r)
-                    )}
-                  </td>
-                ))}
+                {visibleColumns.map((c, ci) => {
+                  const isGroupStart = ci === 0 || visibleColumns[ci - 1].group !== c.group;
+                  return (
+                    <td
+                      key={c.id}
+                      className={`px-2 py-1.5 whitespace-nowrap ${GROUP_BODY_TINT[c.group]} ${c.align === "left" ? "text-left" : "text-right"} ${isGroupStart ? "border-l-2 border-l-border" : ""}`}
+                    >
+                      {(c.id === "s2Signal" && r.strategy2.signal === "buy") ||
+                      (c.id === "s3Signal" && r.strategy3.signal === "buy") ? (
+                        <span className="text-green-600 dark:text-green-400 font-medium">{c.display(r)}</span>
+                      ) : c.id === "s3SellSignal" && r.strategy3.sellSignal === "sell" ? (
+                        <span className="text-red-600 dark:text-red-400 font-medium">{c.display(r)}</span>
+                      ) : (
+                        c.display(r)
+                      )}
+                    </td>
+                  );
+                })}
               </tr>
             ))}
           </tbody>
