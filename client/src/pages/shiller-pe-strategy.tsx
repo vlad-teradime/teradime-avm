@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { AlertCircle } from "lucide-react";
 import AppShell from "@/components/AppShell";
 import ShillerPeStrategyChart, { downsampleForChart, type ShillerPeChartPoint, type ShillerPeMarkerPoint } from "@/components/shiller-pe-strategy-chart";
+import BacktestDataTable, { type BacktestSeriesPoint } from "@/components/backtest-data-table";
 
 const BASE = "/api/screeners/shiller-pe-strategy";
 
@@ -26,14 +27,6 @@ interface StrategySummary {
   outperformancePct: number | null;
 }
 
-interface BacktestPoint {
-  date: string;
-  price: number;
-  buyHold: { marketValue: number };
-  strategy2: { signal: "buy" | "hold"; shares: number; cash: number; marketValue: number };
-  strategy3: { signal: "buy" | "hold"; sellSignal: "buy" | "hold" | "sell"; shares: number; cash: number; marketValue: number };
-}
-
 interface TradeEvent {
   date: string;
   type: "buy" | "sell";
@@ -43,7 +36,7 @@ interface TradeEvent {
   marketValue: number;
 }
 
-function buildStrategy2Events(series: BacktestPoint[]): TradeEvent[] {
+function buildStrategy2Events(series: BacktestSeriesPoint[]): TradeEvent[] {
   const events: TradeEvent[] = [];
   let prevSignal: "buy" | "hold" = "hold";
   for (const p of series) {
@@ -55,7 +48,7 @@ function buildStrategy2Events(series: BacktestPoint[]): TradeEvent[] {
   return events;
 }
 
-function buildStrategy3Events(series: BacktestPoint[]): TradeEvent[] {
+function buildStrategy3Events(series: BacktestSeriesPoint[]): TradeEvent[] {
   const events: TradeEvent[] = [];
   let prevSignal: "buy" | "hold" = "hold";
   for (const p of series) {
@@ -70,7 +63,7 @@ function buildStrategy3Events(series: BacktestPoint[]): TradeEvent[] {
 }
 
 interface BacktestResult {
-  series: BacktestPoint[];
+  series: BacktestSeriesPoint[];
   summary: {
     totalCapitalDeployed: number;
     buyHold: StrategySummary;
@@ -355,53 +348,10 @@ export default function ShillerPeStrategyPage() {
               </p>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-4">
-              <TradeLog title="Valuation-Filtered DCA — Buys" events={strategy2Events} />
-              <TradeLog title="Valuation + Trend Filtered DCA — Buys & Sells" events={strategy3Events} />
-            </div>
+            <BacktestDataTable series={result.series} contributionAmount={parseFloat(contributionAmount) || 0} />
           </>
         )}
       </main>
     </AppShell>
-  );
-}
-
-function TradeLog({ title, events }: { title: string; events: TradeEvent[] }) {
-  return (
-    <div className="rounded-lg border border-border p-4 space-y-3">
-      <h3 className="text-sm font-semibold">{title}</h3>
-      {events.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No buy or sell transitions in this period.</p>
-      ) : (
-        <div className="overflow-x-auto max-h-80 overflow-y-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-muted-foreground">
-                <th className="sticky top-0 z-10 bg-background py-2 pr-4 font-medium border-b border-border">Date</th>
-                <th className="sticky top-0 z-10 bg-background py-2 pr-4 font-medium border-b border-border">Type</th>
-                <th className="sticky top-0 z-10 bg-background py-2 pr-4 font-medium border-b border-border">Price</th>
-                <th className="sticky top-0 z-10 bg-background py-2 pr-4 font-medium border-b border-border">Shares (rolling)</th>
-                <th className="sticky top-0 z-10 bg-background py-2 pr-4 font-medium border-b border-border">Cash (rolling)</th>
-                <th className="sticky top-0 z-10 bg-background py-2 pr-4 font-medium border-b border-border">Market Value (rolling)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {events.map((e, i) => (
-                <tr key={`${e.date}-${i}`} className="border-b border-border/50">
-                  <td className="py-2 pr-4">{e.date}</td>
-                  <td className={`py-2 pr-4 font-medium capitalize ${e.type === "buy" ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
-                    {e.type}
-                  </td>
-                  <td className="py-2 pr-4">{fmtCurrency(e.price)}</td>
-                  <td className="py-2 pr-4">{e.shares.toFixed(2)}</td>
-                  <td className="py-2 pr-4">{fmtCurrency(e.cash)}</td>
-                  <td className="py-2 pr-4">{fmtCurrency(e.marketValue)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
   );
 }
